@@ -1,0 +1,1 @@
+# check version: pip freeze | findstr supabase
