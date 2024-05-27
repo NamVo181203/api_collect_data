@@ -25,8 +25,9 @@ def colorize(value):
 def main():
     # sample for select box
     # setup interface
-    st.markdown("<h1>Thu thập dữ liệu đếm số từ 1 đến 20, \"Xác nhận\" và \"Làm lại\"</h1>", unsafe_allow_html=True)
-
+    st.markdown("<h1>Thu thập dữ liệu đếm số</h1>", unsafe_allow_html=True)
+    st.markdown("<span style='color: red ;font-size: 20px'>1 đến 20, \"Xác nhận\" và \"Làm lại\"</span>",
+                unsafe_allow_html=True)
     label = st.text_input("Label")
     st.markdown(
         f"""<div style="display: flex; gap: 10px"><p style='font-size: 15px; color: 'black'>Label: 
