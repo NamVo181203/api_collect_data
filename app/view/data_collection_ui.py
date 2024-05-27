@@ -31,22 +31,11 @@ def main():
         st.markdown("<span style='color: red ;font-size: 20px'>Bạn vui lòng đọc hướng dẫn sử dụng</span>",
                     unsafe_allow_html=True)
 
-        scol1, scol2 = st.columns([2, 2])
-
-        #
-        with scol1:
-            canonical = st.text_input("Từ phát âm đúng")
-            st.markdown(
-                f"""<div style="display: flex; gap: 10px"><p style='font-size: 15px; color: 'black'>Từ phát âm đúng
-                                    <span style='font-size: 20px; color: 'red'><strong>{canonical}</strong></span></p></div>""",
-                unsafe_allow_html=True)
-
-        with scol2:
-            transcript = st.text_input("Từ phát âm")
-            st.markdown(
-                f"""<div style="display: flex; gap: 10px"><p style='font-size: 15px; color: 'black'>Từ phát âm
-                                    <span style='font-size: 20px; color: 'red'><strong>{transcript}</strong></span></p></div>""",
-                unsafe_allow_html=True)
+        label = st.text_input("Label")
+        st.markdown(
+            f"""<div style="display: flex; gap: 10px"><p style='font-size: 15px; color: 'black'>Label: 
+                                <span style='font-size: 20px; color: 'red'><strong>{label}</strong></span></p></div>""",
+            unsafe_allow_html=True)
 
         # RECORD AUDIO WITH STREAMLIT-AUDIOREC
         wav_audio_data = st_audiorec()
@@ -57,7 +46,7 @@ def main():
         #     st.audio(audio_bytes, format="audio/wav")
 
         if st.button("Lưu dữ liệu") and wav_audio_data:
-            if canonical != '' and transcript != '':
+            if label != '':
                 # Convert audio_bytes to a NumPy array
                 audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
 
@@ -82,13 +71,13 @@ def main():
                         st.write("Đang chờ xử lý")
 
                         response = DB.table("speech-data").insert(
-                            {"audio_url": wav_url, "canonical": canonical.strip(),
-                             "transcripts": transcript.strip()}).execute()
+                            {"audio_url": wav_url, "canonical": label.strip()}).execute()
 
                         print(f"DB: {response}")
                         wav_audio_data = None
                         if response:
-                            st.markdown(f"<div style='color: Green; font-size: 25px'>Done</div>", unsafe_allow_html=True)
+                            st.markdown(f"<div style='color: Green; font-size: 25px'>Done</div>",
+                                        unsafe_allow_html=True)
 
                             # delete wav file
                             if os.path.exists(OUT_WAV_FILE):
