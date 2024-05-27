@@ -71,7 +71,7 @@ def main():
                         st.write("Đang chờ xử lý")
 
                         response = DB.table("speech-data").insert(
-                            {"audio_url": wav_url, "canonical": label.strip()}).execute()
+                            {"audio_url": wav_url, "label": label.strip()}).execute()
 
                         print(f"DB: {response}")
                         wav_audio_data = None
