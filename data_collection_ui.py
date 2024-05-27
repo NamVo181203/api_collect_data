@@ -53,7 +53,7 @@ def main():
                 if len(audio_array) > 0:
                     # Save the audio to a file using soundfile library
                     # You can change the filename and format accordingly
-                    OUT_WAV_FILE = f"upload/recorded_audio{time.time()}.wav"  # define absolute path
+                    OUT_WAV_FILE = f"./upload/recorded_audio{time.time()}.wav"  # define absolute path
 
                     # wavfile.write(OUT_WAV_FILE, 44100, audio_array)
                     sf.write(OUT_WAV_FILE, audio_array, 44100)
