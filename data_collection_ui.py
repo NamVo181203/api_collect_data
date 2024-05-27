@@ -68,22 +68,21 @@ def main():
                         # get audio_url
                         wav_url = DB.storage.from_("data-collect-bucket").get_public_url(path=f"{OUT_WAV_FILE}")
                         print(f"Wav url: {wav_url}")
-                        st.write("Đang chờ xử lý")
+                        with st.spinner('Đợi trong giây lát để nhận được phản hồi...'):
+                            response = DB.table("speech-data").insert(
+                                {"audio_url": wav_url, "label": label.strip()}).execute()
 
-                        response = DB.table("speech-data").insert(
-                            {"audio_url": wav_url, "label": label.strip()}).execute()
+                            print(f"DB: {response}")
+                            wav_audio_data = None
 
-                        print(f"DB: {response}")
-                        wav_audio_data = None
-                        if response:
-                            st.markdown(f"<div style='color: Green; font-size: 25px'>Done</div>",
-                                        unsafe_allow_html=True)
+                            if response:
+                                st.success("Cảm ơn sự giúp đỡ của bạn!")
 
-                            # delete wav file
-                            if os.path.exists(OUT_WAV_FILE):
-                                os.remove(OUT_WAV_FILE)
-                        else:
-                            st.error(f"Failed to fetch data")
+                                # delete wav file
+                                if os.path.exists(OUT_WAV_FILE):
+                                    os.remove(OUT_WAV_FILE)
+                            else:
+                                st.error(f"Lỗi!!!")
                 else:
                     st.warning("The audio data is empty.")
             else:
