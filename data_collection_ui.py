@@ -51,23 +51,24 @@ def main():
                 if len(audio_array) > 0:
                     # Save the audio to a file using soundfile library
                     # You can change the filename and format accordingly
-                    OUT_WAV_FILE = f"./upload/recorded_audio{time.time()}.wav"  # define absolute path
+                    OUT_WAV_FILE = f"./upload/recorded_audio{int(time.time())}.wav"  # define absolute path
 
                     # wavfile.write(OUT_WAV_FILE, 44100, audio_array)
                     sf.write(OUT_WAV_FILE, audio_array, 44100)
 
                     # send audio file
-                    bucket_res = DB.storage.from_("data-collect-bucket").upload(file=OUT_WAV_FILE,
-                                                                                path=f"{OUT_WAV_FILE}",
-                                                                                file_options={
-                                                                                    "content-type": "audio/wav"})
+                    bucket_res = DB.storage.from_("data-test-bucket").upload(file=OUT_WAV_FILE,
+                                                                             path=f"{OUT_WAV_FILE}",
+                                                                             file_options={
+                                                                                 "content-type": "audio/wav"})
                     print(f"Bucket: {bucket_res}")
                     if OUT_WAV_FILE:
                         # get audio_url
-                        wav_url = DB.storage.from_("data-collect-bucket").get_public_url(path=f"{OUT_WAV_FILE}")
+                        wav_url = DB.storage.from_("data-test-bucket").get_public_url(path=f"{OUT_WAV_FILE}")
+                        wav_url = wav_url[:-1]
                         print(f"Wav url: {wav_url}")
 
-                        response = DB.table("speech-data").insert(
+                        response = DB.table("speech-data-test").insert(
                             {"audio_url": wav_url, "label": label.strip()}).execute()
 
                         print(f"DB: {response}")
@@ -88,5 +89,5 @@ def main():
 
 
 if __name__ == "__main__":
-    st.set_page_config(page_title="Collect Data", layout="wide")
+    st.set_page_config(page_title="Collect Data Test", layout="wide")
     main()
