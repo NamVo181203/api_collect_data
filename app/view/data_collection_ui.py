@@ -23,12 +23,19 @@ def colorize(value):
 
 
 def main():
+    labels = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "xác nhận", "làm lại"]
     # sample for select box
     # setup interface
     st.markdown("<h1>Thu thập dữ liệu đếm số</h1>", unsafe_allow_html=True)
     st.markdown("<span style='color: red ;font-size: 20px'>1 đến 20, \"Xác nhận\" và \"Làm lại\"</span>",
                 unsafe_allow_html=True)
-    label = st.text_input("Label")
+    # label = st.text_input("Label")
+    label = st.selectbox(
+                label="Từ phát âm",
+                options=labels,
+                index=0,
+                placeholder="Nhãn",
+            )
     st.markdown(
         f"""<div style="display: flex; gap: 10px"><p style='font-size: 15px; color: 'black'>Label: 
                                 <span style='font-size: 20px; color: 'red'><strong>{label}</strong></span></p></div>""",
@@ -44,7 +51,7 @@ def main():
 
     if st.button("Lưu dữ liệu") and wav_audio_data:
         with st.spinner('Đợi trong giây lát...'):
-            if label != '':
+            if label != '' and label in labels:
                 # Convert audio_bytes to a NumPy array
                 audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
 
@@ -61,16 +68,12 @@ def main():
                                                                                 path=f"{OUT_WAV_FILE}",
                                                                                 file_options={
                                                                                     "content-type": "audio/wav"})
-                    print(f"Bucket: {bucket_res}")
                     if OUT_WAV_FILE:
                         # get audio_url
                         wav_url = DB.storage.from_("data-collect-bucket").get_public_url(path=f"{OUT_WAV_FILE}")
-                        print(f"Wav url: {wav_url}")
 
                         response = DB.table("speech-data").insert(
                             {"audio_url": wav_url, "label": label.strip()}).execute()
-
-                        print(f"DB: {response}")
                         wav_audio_data = None
 
                         if response:
