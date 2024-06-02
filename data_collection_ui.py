@@ -48,12 +48,13 @@ def main():
     # if audio_bytes:
     #     st.audio(audio_bytes, format="audio/wav")
 
-    if st.button("Lưu dữ liệu"):
+    if st.button("Lưu dữ liệu") and wav_audio_data:
         with st.spinner('Đợi trong giây lát...'):
-            
             if label != '' and label in labels:
+                # Convert audio_bytes to a NumPy array
+                audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
+
                 if len(audio_array) > 0:
-                    audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
                     # Save the audio to a file using soundfile library
                     # You can change the filename and format accordingly
                     OUT_WAV_FILE = f"./upload/recorded_audio{int(time.time())}.wav"  # define absolute path
@@ -63,22 +64,29 @@ def main():
 
                     # send audio file
                     bucket_res = DB.storage.from_("data-test-bucket").upload(file=OUT_WAV_FILE,
-                                                                            path=f"{OUT_WAV_FILE}",
-                                                                            file_options={
-                                                                                "content-type": "audio/wav"})
+                                                                             path=f"{OUT_WAV_FILE}",
+                                                                             file_options={
+                                                                                 "content-type": "audio/wav"})
 
-                    wav_url = DB.storage.from_("data-test-bucket").get_public_url(path=f"{OUT_WAV_FILE}")
-                    wav_url = wav_url[:-1]
+                    if OUT_WAV_FILE:
+                        # get audio_url
+                        wav_url = DB.storage.from_("data-test-bucket").get_public_url(path=f"{OUT_WAV_FILE}")
+                        wav_url = wav_url[:-1]
 
-                    response = DB.table("speech-data-test").insert(
-                        {"audio_url": wav_url, "label": label.strip()}).execute()
+                        response = DB.table("speech-data-test").insert(
+                            {"audio_url": wav_url, "label": label.strip()}).execute()
 
-                    if response:
-                        st.success("Cảm ơn sự giúp đỡ của bạn!")
-                        if os.path.exists(OUT_WAV_FILE):
-                            os.remove(OUT_WAV_FILE)
-                    else:
-                        st.error(f"Lỗi!!!")
+                        print(f"DB: {response}")
+                        wav_audio_data = None
+
+                        if response:
+                            st.success("Cảm ơn sự giúp đỡ của bạn!")
+
+                            # delete wav file
+                            if os.path.exists(OUT_WAV_FILE):
+                                os.remove(OUT_WAV_FILE)
+                        else:
+                            st.error(f"Lỗi!!!")
                 else:
                     st.warning("The audio data is empty.")
             else:
