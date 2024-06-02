@@ -42,53 +42,47 @@ def main():
 
     # RECORD AUDIO WITH STREAMLIT-AUDIOREC
     wav_audio_data = st_audiorec()
-    audio_array_old = None
 
     # audio_bytes = audio_recorder(text="", pause_threshold=1, sample_rate=44100, energy_threshold=0.)
 
     # if audio_bytes:
     #     st.audio(audio_bytes, format="audio/wav")
 
-    if st.button("Lưu dữ liệu") and wav_audio_data:
+    if st.button("Lưu dữ liệu"):
         with st.spinner('Đợi trong giây lát...'):
-            audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
-            if audio_array != audio_array_old:
-                if label != '' and label in labels:
-                    if len(audio_array) > 0:
-                        audio_array_old = audio_array
-                        # Save the audio to a file using soundfile library
-                        # You can change the filename and format accordingly
-                        OUT_WAV_FILE = f"./upload/recorded_audio{int(time.time())}.wav"  # define absolute path
+            
+            if label != '' and label in labels:
+                if len(audio_array) > 0:
+                    audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
+                    # Save the audio to a file using soundfile library
+                    # You can change the filename and format accordingly
+                    OUT_WAV_FILE = f"./upload/recorded_audio{int(time.time())}.wav"  # define absolute path
 
-                        # wavfile.write(OUT_WAV_FILE, 44100, audio_array)
-                        sf.write(OUT_WAV_FILE, audio_array, 44100)
+                    # wavfile.write(OUT_WAV_FILE, 44100, audio_array)
+                    sf.write(OUT_WAV_FILE, audio_array, 44100)
 
-                        # send audio file
-                        bucket_res = DB.storage.from_("data-test-bucket").upload(file=OUT_WAV_FILE,
-                                                                                path=f"{OUT_WAV_FILE}",
-                                                                                file_options={
-                                                                                    "content-type": "audio/wav"})
+                    # send audio file
+                    bucket_res = DB.storage.from_("data-test-bucket").upload(file=OUT_WAV_FILE,
+                                                                            path=f"{OUT_WAV_FILE}",
+                                                                            file_options={
+                                                                                "content-type": "audio/wav"})
 
-                        wav_url = DB.storage.from_("data-test-bucket").get_public_url(path=f"{OUT_WAV_FILE}")
-                        wav_url = wav_url[:-1]
+                    wav_url = DB.storage.from_("data-test-bucket").get_public_url(path=f"{OUT_WAV_FILE}")
+                    wav_url = wav_url[:-1]
 
-                        response = DB.table("speech-data-test").insert(
-                            {"audio_url": wav_url, "label": label.strip()}).execute()
+                    response = DB.table("speech-data-test").insert(
+                        {"audio_url": wav_url, "label": label.strip()}).execute()
 
-                        wav_audio_data = None
-
-                        if response:
-                            st.success("Cảm ơn sự giúp đỡ của bạn!")
-                            if os.path.exists(OUT_WAV_FILE):
-                                os.remove(OUT_WAV_FILE)
-                        else:
-                            st.error(f"Lỗi!!!")
+                    if response:
+                        st.success("Cảm ơn sự giúp đỡ của bạn!")
+                        if os.path.exists(OUT_WAV_FILE):
+                            os.remove(OUT_WAV_FILE)
                     else:
-                        st.warning("The audio data is empty.")
+                        st.error(f"Lỗi!!!")
                 else:
-                    st.warning("Điền đầy đủ thông tin bạn nhé")
+                    st.warning("The audio data is empty.")
             else:
-                    st.warning("Vui lòng phát âm lại")
+                st.warning("Điền đầy đủ thông tin bạn nhé")
 
 
 if __name__ == "__main__":
