@@ -42,7 +42,7 @@ def main():
 
     # RECORD AUDIO WITH STREAMLIT-AUDIOREC
     wav_audio_data = st_audiorec()
-    audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
+    audio_array_old = None
 
     # audio_bytes = audio_recorder(text="", pause_threshold=1, sample_rate=44100, energy_threshold=0.)
 
@@ -51,9 +51,9 @@ def main():
 
     if st.button("Lưu dữ liệu") and wav_audio_data:
         with st.spinner('Đợi trong giây lát...'):
+            audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
             if audio_array != audio_array_old:
                 if label != '' and label in labels:
-
                     if len(audio_array) > 0:
                         audio_array_old = audio_array
                         # Save the audio to a file using soundfile library
