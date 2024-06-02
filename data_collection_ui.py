@@ -42,6 +42,7 @@ def main():
 
     # RECORD AUDIO WITH STREAMLIT-AUDIOREC
     wav_audio_data = st_audiorec()
+    wav_audio_data_old = None
 
     # audio_bytes = audio_recorder(text="", pause_threshold=1, sample_rate=44100, energy_threshold=0.)
 
@@ -50,47 +51,46 @@ def main():
 
     if st.button("Lưu dữ liệu") and wav_audio_data:
         with st.spinner('Đợi trong giây lát...'):
-            if label != '' and label in labels:
-                # Convert audio_bytes to a NumPy array
-                audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
+            if wav_audio_data != wav_audio_data_old:
+                if label != '' and label in labels:
+                    # Convert audio_bytes to a NumPy array
+                    audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
 
-                if len(audio_array) > 0:
-                    # Save the audio to a file using soundfile library
-                    # You can change the filename and format accordingly
-                    OUT_WAV_FILE = f"./upload/recorded_audio{int(time.time())}.wav"  # define absolute path
+                    if len(audio_array) > 0:
+                        wav_audio_data_old = wav_audio_data
+                        # Save the audio to a file using soundfile library
+                        # You can change the filename and format accordingly
+                        OUT_WAV_FILE = f"./upload/recorded_audio{int(time.time())}.wav"  # define absolute path
 
-                    # wavfile.write(OUT_WAV_FILE, 44100, audio_array)
-                    sf.write(OUT_WAV_FILE, audio_array, 44100)
+                        # wavfile.write(OUT_WAV_FILE, 44100, audio_array)
+                        sf.write(OUT_WAV_FILE, audio_array, 44100)
 
-                    # send audio file
-                    bucket_res = DB.storage.from_("data-test-bucket").upload(file=OUT_WAV_FILE,
-                                                                             path=f"{OUT_WAV_FILE}",
-                                                                             file_options={
-                                                                                 "content-type": "audio/wav"})
+                        # send audio file
+                        bucket_res = DB.storage.from_("data-test-bucket").upload(file=OUT_WAV_FILE,
+                                                                                path=f"{OUT_WAV_FILE}",
+                                                                                file_options={
+                                                                                    "content-type": "audio/wav"})
 
-                    if OUT_WAV_FILE:
-                        # get audio_url
                         wav_url = DB.storage.from_("data-test-bucket").get_public_url(path=f"{OUT_WAV_FILE}")
                         wav_url = wav_url[:-1]
 
                         response = DB.table("speech-data-test").insert(
                             {"audio_url": wav_url, "label": label.strip()}).execute()
 
-                        print(f"DB: {response}")
                         wav_audio_data = None
 
                         if response:
                             st.success("Cảm ơn sự giúp đỡ của bạn!")
-
-                            # delete wav file
                             if os.path.exists(OUT_WAV_FILE):
                                 os.remove(OUT_WAV_FILE)
                         else:
                             st.error(f"Lỗi!!!")
+                    else:
+                        st.warning("The audio data is empty.")
                 else:
-                    st.warning("The audio data is empty.")
+                    st.warning("Điền đầy đủ thông tin bạn nhé")
             else:
-                st.warning("Điền đầy đủ thông tin bạn nhé")
+                    st.warning("Vui lòng phát âm lại")
 
 
 if __name__ == "__main__":
