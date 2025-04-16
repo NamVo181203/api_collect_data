@@ -12,10 +12,11 @@ import requests
 from streamlit_cookies_controller import CookieController
 
 # init DB
-url: str = "https://cceebjjirmrvyhqecubk.supabase.co"
-key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjZWViamppcm1ydnlocWVjdWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk2NDMxMTMsImV4cCI6MjAyNTIxOTExM30.dh4WE15QV41Ch7GZlpNyELOa6ZZiapV9RsYHuHi6ZQ8"
-url_api = 'https://api.fpt.ai/hmi/tts/v5'
+url: str = "https://eecucubpmvpjkhqletul.supabase.co"
+key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlY3VjdWJwbXZwamtocWxldHVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3MTc5MzUsImV4cCI6MjA2MDI5MzkzNX0.Av-ZEQ2xczudhm2c8p1JioXRXQCf4s0m4X_w5jrkf-8"
 DB: Client = create_client(supabase_url=url, supabase_key=key)
+
+st.set_page_config(layout="wide")
 
 def colorize(value):
     if value == 1:
@@ -90,30 +91,28 @@ def main():
 
 
                     # send audio file
-                    bucket_res = DB.storage.from_("vmd-bucket").upload(file=OUT_WAV_FILE, path=f"{OUT_WAV_FILE}",
+                    _ = DB.storage.from_("cs-bucket").upload(file=OUT_WAV_FILE, path=f"{OUT_WAV_FILE}",
                                                                        file_options={"content-type": "audio/wav"})
+
                     if OUT_WAV_FILE:
                         # get audio_url
-                        wav_url = DB.storage.from_("vmd-bucket").get_public_url(path=f"{OUT_WAV_FILE}")
+                        wav_url = DB.storage.from_("cs-bucket").get_public_url(path=f"{OUT_WAV_FILE}")
                         print(f"Wav url: {wav_url}")
                         st.write("Đang chờ xử lý")
-                        response = DB.table("vmd-data").insert(
+                        response = DB.table("cs-data").insert(
                             {
                                 "user_id": session_id,
                                 "audio_url": wav_url,
                                 "transcript_text": suggestion.strip(),
                                 "age": age,
-                                "gender": gender,
-                                "type_voice": False}).execute()
+                                "gender": gender
+                            }).execute()
                         wav_audio_data = None
                         if response:
                             st.markdown(f"<div style='color: red; font-size: 25px'>Cảm ơn bạn đã giành thời gian giúp "
                                         f"chúng mình</div>",
                                         unsafe_allow_html=True)
 
-                            # delete wav file
-                            if os.path.exists(OUT_WAV_FILE):
-                                os.remove(OUT_WAV_FILE)
                         else:
                             st.error(f"Failed to fetch data")
                 else:
@@ -142,5 +141,4 @@ def main():
 
 
 if __name__ == "__main__":
-    st.set_page_config(page_title="Mispronunciation detection", layout="wide")
     main()
