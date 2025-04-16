@@ -9,7 +9,6 @@ from random import shuffle
 import uuid
 import os
 import requests
-from streamlit_cookies_controller import CookieController
 
 # init DB
 url: str = "https://eecucubpmvpjkhqletul.supabase.co"
@@ -35,15 +34,20 @@ def _get_phonemes(file_path):
     return list_of_phonemes
 
 def get_transcripts(path):
-    pass
+    rs = []
+    with open(path, "r", encoding="utf-8") as file:
+        for line in file:
+            rs.append(line)
+    return rs
 
-controller = CookieController()
+@st.cache_data
+def get_user_id():
+    return str(uuid.uuid4())
 
 def main():
-    session_id = controller.get("sessionId")
+    session_id = get_user_id()
     if not session_id:
         session_id = str(uuid.uuid4())
-        controller.set("sessionId", session_id)
 
     # sample for select box
     transcripts = _get_phonemes("phoneme_dict.txt")
