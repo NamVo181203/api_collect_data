@@ -11,6 +11,7 @@ import os
 import requests
 from streamlit_javascript import st_javascript
 import json
+import csv
 
 # init DB
 url: str = "https://eecucubpmvpjkhqletul.supabase.co"
@@ -44,24 +45,37 @@ def _get_phonemes(file_path):
     return list_of_phonemes
 
 def get_transcripts(path):
-    rs = []
-    with open(path, "r", encoding="utf-8") as file:
-        for line in file:
-            rs.append(line)
-    return rs
+    samples = []
+    with open(path, newline='', encoding='utf-8') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)  # Skip header if there is one
+        for row in reader:
+            samples.append(str(row[0] + " - " + row[1]))
+    return samples
 
 @st.cache_data
 def get_user_id():
     return str(uuid.uuid4())
 
+def internal_select(option):
+    texts = option.split("-")
+    text = texts[1]
+    return text
+
+def on_select_change():
+    selection = st.session_state["transcript"].split("-")
+    item = selection[0]
+    st.session_state["word"] = item
+
 def main():
     session_id = local_storage_get("userId")
     if not session_id:
         session_id = get_user_id()
-        local_storage_set("userId", session_id)
+        st.session_state["userId"] = session_id
+        # local_storage_set("userId", session_id)
 
     # sample for select box
-    transcripts = _get_phonemes("phoneme_dict.txt")
+    transcripts = get_transcripts("test_200_words_0.csv")
     _, cl1, _, cl3, _ = st.columns([1, 10, 1, 6, 1])
     with cl1:
         # setup interface
@@ -75,7 +89,9 @@ def main():
             "Gợi ý transcript cho người dùng",
             transcripts,
             index=0,
-            placeholder="Từ đúng - Từ sai",
+            format_func=internal_select,
+            on_change=on_select_change,
+            key="transcript",
         )
         c1, c2, c3 = st.columns([5, 5, 5])
 
@@ -94,7 +110,7 @@ def main():
         wav_audio_data = st_audiorec()
 
         if st.button("Lưu dữ liệu") and wav_audio_data:
-            if age != 0 and session_id is not None and gender is not None and suggestion is not None and region != "":
+            if age != 0 and session_id is not None and gender is not None and suggestion is not None and region != "" and st.session_state["word"] is not None:
                 # Convert audio_bytes to a NumPy array
                 audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
 
@@ -120,6 +136,7 @@ def main():
                             {
                                 "user_id": session_id,
                                 "audio_url": wav_url,
+                                "word": st.session_state["word"],
                                 "transcript_text": suggestion.strip(),
                                 "age": age,
                                 "gender": gender,
