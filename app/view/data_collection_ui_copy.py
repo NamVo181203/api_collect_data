@@ -9,6 +9,8 @@ from random import shuffle
 import uuid
 import os
 import requests
+from streamlit_javascript import st_javascript
+import json
 
 # init DB
 url: str = "https://eecucubpmvpjkhqletul.supabase.co"
@@ -16,6 +18,14 @@ key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI
 DB: Client = create_client(supabase_url=url, supabase_key=key)
 
 st.set_page_config(layout="wide")
+
+def local_storage_set(key, value):
+    value = json.dumps(value, ensure_ascii=False)  # Convert to JSON string
+    st_javascript(f"localStorage.setItem('{key}', {value});")
+
+# Function to get a value from localStorage
+def local_storage_get(key):
+    return st_javascript(f"localStorage.getItem('{key}');")
 
 def colorize(value):
     if value == 1:
@@ -45,9 +55,10 @@ def get_user_id():
     return str(uuid.uuid4())
 
 def main():
-    session_id = get_user_id()
+    session_id = local_storage_get("userId")
     if not session_id:
-        session_id = str(uuid.uuid4())
+        session_id = get_user_id()
+        local_storage_set("userId", session_id)
 
     # sample for select box
     transcripts = _get_phonemes("phoneme_dict.txt")
@@ -66,22 +77,24 @@ def main():
             index=0,
             placeholder="Từ đúng - Từ sai",
         )
-        c3, c4 = st.columns([5, 5])
+        c1, c2, c3 = st.columns([5, 5, 5])
 
-        with c3:
+        with c1:
             age = st.number_input("Tuổi", min_value=0)
-        with c4:
+        with c2:
             gender = st.selectbox(
                 "Giới tính",
                 ["Nam", "Nữ"],
                 index=0,
             )
+        with c3:
+            region = st.text_input(label="Tỉnh/TP",placeholder="Đà Nẵng")
 
         # RECORD AUDIO WITH STREAMLIT-AUDIOREC
         wav_audio_data = st_audiorec()
 
         if st.button("Lưu dữ liệu") and wav_audio_data:
-            if age != 0 and session_id is not None and gender is not None and suggestion is not None:
+            if age != 0 and session_id is not None and gender is not None and suggestion is not None and region != "":
                 # Convert audio_bytes to a NumPy array
                 audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
 
@@ -109,9 +122,9 @@ def main():
                                 "audio_url": wav_url,
                                 "transcript_text": suggestion.strip(),
                                 "age": age,
-                                "gender": gender
+                                "gender": gender,
+                                "region": region.strip()
                             }).execute()
-                        wav_audio_data = None
                         if response:
                             st.markdown(f"<div style='color: red; font-size: 25px'>Cảm ơn bạn đã giành thời gian giúp "
                                         f"chúng mình</div>",
@@ -134,9 +147,9 @@ def main():
                     f"lỗi hoặc thiếu </strong>thì bấm <strong>“Reset”</strong> để ghi âm lại nha.</p>"
                     f"<p><strong>Bước 4</strong> Bấm <strong>“Lưu dữ liệu”</strong> để gửi ghi âm về cho chúng mình "
                     f"bạn nhé</p></br>"
-                    f"<strong><span style='color: red'>Lưu ý: các bạn có thể phát âm các từ tiếng Anh theo từ Việt hóa </br>"
+                    f"<strong><span style='color: red'>Lưu ý: các bạn có thể phát âm các từ tiếng Anh theo hướng Việt hóa </br>"
                     f"<strong><span style='color: green'> Eg: assistant -> ờ xích tình </br>"
-                    f"<strong><span style='color: red'>Khi thanh ghi âm hiện lên/sáng lên bạn hẳn phát âm "
+                    f"<strong><span style='color: red'>Khi thanh ghi âm hiện lên/sáng lên bạn hẳn ghi âm "
                     f"nhé.</span></strong> </br>",
                     unsafe_allow_html=True)
         st.image("visualize.png", width=300)  # aaaa
