@@ -6,18 +6,29 @@ from st_audiorec import st_audiorec
 from supabase import create_client, Client
 import scipy.io.wavfile as wavfile
 from random import shuffle
+import uuid
 import os
 import requests
+from streamlit_javascript import st_javascript
+import json
+import csv
+import random
+
 
 # init DB
-url: str = "https://cceebjjirmrvyhqecubk.supabase.co"
-key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjZWViamppcm1ydnlocWVjdWJrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk2NDMxMTMsImV4cCI6MjAyNTIxOTExM30.dh4WE15QV41Ch7GZlpNyELOa6ZZiapV9RsYHuHi6ZQ8"
-url_api = 'https://api.fpt.ai/hmi/tts/v5'
+url: str = "https://eecucubpmvpjkhqletul.supabase.co"
+key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlY3VjdWJwbXZwamtocWxldHVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3MTc5MzUsImV4cCI6MjA2MDI5MzkzNX0.Av-ZEQ2xczudhm2c8p1JioXRXQCf4s0m4X_w5jrkf-8"
 DB: Client = create_client(supabase_url=url, supabase_key=key)
 
+st.set_page_config(layout="wide")
 
-# demo app using streamlit integrating model prediction -> return mapped result
-# call api to save data recorded and call model api to predict
+def local_storage_set(key, value):
+    value = json.dumps(value, ensure_ascii=False)  # Convert to JSON string
+    st_javascript(f"localStorage.setItem('{key}', {value});")
+
+# Function to get a value from localStorage
+def local_storage_get(key):
+    return st_javascript(f"localStorage.getItem('{key}');")
 
 def colorize(value):
     if value == 1:
@@ -35,50 +46,39 @@ def _get_phonemes(file_path):
             list_of_phonemes.append(line)
     return list_of_phonemes
 
+def get_transcripts(path):
+    samples = []
+    with open(path, newline='', encoding='utf-8') as csvfile:
+        reader = csv.reader(csvfile)
+        next(reader)  # Skip header if there is one
+        for row in reader:
+            samples.append(str(row[0] + " - " + row[1]))
+    return samples
 
-def get_api_audio_fpt(text):
-    number = 15
-    if number == 1:
-        api_key = 'pfZsKNQYvj1CZwnRyOdASha4Pl1qJNTl'  # 1
-    elif number == 2:
-        api_key = 'c3r38KxajnMjtZ4V95ggxa3WVcyQTsBb'  # 2
-    elif number == 3:
-        api_key = 'eMQy9VMPNDMa4LnM828W5ctvjOuTKRek'  # 3
-    elif number == 4:
-        api_key = 'gm936wFJcmGN8WGPShF6G1S67HFV9iXh'  # 4
-    elif number == 5:
-        api_key = '0WQWEsA7rGhih6preBAqft56Hy66Hsxb'  # 5
-    elif number == 6:
-        api_key = 'CR6X2VLjiP0PUEGeN0Hwqyo6Lvjn3Fty'  # 6
-    elif number == 7:
-        api_key = 'xR0kWklCVUdWCiUPHjCWSuakJpHAhX1v'  # 7
-    elif number == 8:
-        api_key = 'eJPoGo4SbItvitkAxJYmxjivwgmrXto3'  # 8
-    elif number == 9:
-        api_key = 'ZfmREGOOvxJd5HyL0FPuHbFhYPPyeTbn'  # 9
-    elif number == 10:
-        api_key = 'JBE715oQE3Varh0hmNRtWrY4LZbzUOnM'  # 10
-    elif number == 11:
-        api_key = 'gWxgcKjlDQENcseGO8K4wQmpT2PZ219E'  # 11
-    elif number == 12:
-        api_key = 'r1RisDUsxbecTubSfOteZ5WCqgji9Twp'  # 12
-    else:
-        api_key = '6RSbnPGtIbog1UZxZhnWvBpE6Cay574K'
-    headers = {
-        'api-key': api_key,
-        'speed': '-2.0',
-        'voice': "banmai"
-    }
-    time.sleep(0.2)
-    response = requests.request('POST', url_api, data=text.encode('utf-8'), headers=headers)
-    audio_url = response.text.split("\"")[3]
-    return audio_url
+@st.cache_data
+def get_user_id():
+    return str(uuid.uuid4())
 
+def internal_select(option):
+    texts = option.split("-")
+    text = texts[1]
+    return text
+
+def on_select_change():
+    selection = st.session_state["transcript"].split("-")
+    item = selection[0]
+    st.session_state["word"] = item
 
 def main():
+    session_id = local_storage_get("userId")
+    if not session_id:
+        session_id = get_user_id()
+        st.session_state["userId"] = session_id
+        # local_storage_set("userId", session_id)
+
     # sample for select box
-    list_phonemes = _get_phonemes("phoneme_dict.txt")
-    voice = ["Phổ thông", "Địa phương"]
+    transcripts = get_transcripts("scripts.csv")
+
     _, cl1, _, cl3, _ = st.columns([1, 10, 1, 6, 1])
     with cl1:
         # setup interface
@@ -86,83 +86,34 @@ def main():
         st.markdown("<span style='color: red ;font-size: 20px'>Bạn vui lòng đọc hướng dẫn sử dụng</span>",
                     unsafe_allow_html=True)
 
-        scol1, scol2, scol3 = st.columns([4, 2, 2])
+        scol1 = st.columns(1)
 
-        with scol1:
-            # toggle box
-            suggestion = st.selectbox(
-                "Gợi ý tự bạn muốn phát âm (phát âm đúng - sai)",
-                list_phonemes,
-                index=0,
-                placeholder="Từ đúng - Từ sai",
-            )
-        #
-        selected_suggetion = suggestion.split("-")
-
-        #
-        with scol2:
-            if suggestion:
-                target_text = st.text_input("Từ phát âm đúng", selected_suggetion[0])
-            else:
-                target_text = st.text_input('(tối đa 2 từ E.g: vào nụi)', '')
-
-        #
-        with scol3:
-            if suggestion:
-                m_words = selected_suggetion[1].split(",")
-                mispronouned_word = st.text_input("Từ bạn muốn phát âm", m_words[0])
-            else:
-                mispronouned_word = st.text_input(f"Phát âm sai của f{target_text}", "")
-
-        c1, c2, c3, c4 = st.columns([2, 2, 2, 2])
+        suggestion = scol1[0].selectbox(
+            "Gợi ý transcript cho người dùng",
+            transcripts,
+            index=0,
+            format_func=internal_select,
+            on_change=on_select_change,
+            key="transcript",
+        )
+        c1, c2, c3 = st.columns([5, 5, 5])
 
         with c1:
-            username = st.text_input("Tên của bạn", "", placeholder="Ví dụ: Nguyễn Văn A")
-        with c2:
-            country = st.text_input("Quê quán", "", placeholder="Ví dụ: Đà Nẵng/ĐN")
-        with c3:
             age = st.number_input("Tuổi", min_value=0)
-        with c4:
-            voice_type = st.selectbox(
-                label="Giọng phát âm",
-                options=voice,
+        with c2:
+            gender = st.selectbox(
+                "Giới tính",
+                ["Nam", "Nữ"],
                 index=0,
-                placeholder="Giọng",
             )
-
-        # Record audio using the audio_recorder function
-
-        sscol1, sscol2, _ = st.columns([5, 5, 1])
-
-        with sscol1:
-            st.markdown(
-                f"""<div style="display: flex; gap: 10px"><p style='font-size: 15px; color: 'black'>Từ phát âm đúng 
-                        <span style='font-size: 20px; color: 'red'><strong>{target_text}</strong></span></p></div>""",
-                unsafe_allow_html=True)
-
-        # if st.button("Nghe phát âm đúng"):
-        #     audio_url = get_api_audio_fpt(target_text)
-        #     if audio_url != "API rate limit exceeded":
-        #         st.audio(audio_url, format='audio/mp3', start_time=0)
-        #     else:
-        #         st.warning("API FPT rate limit exceeded")
-
-        with sscol2:
-            st.markdown(
-                f"<p>Từ bạn muốn phát âm <span style='font-size: 20px; color: 'red'><strong>{mispronouned_word}</strong"
-                f"></span></p>",
-                unsafe_allow_html=True)
+        with c3:
+            region = st.text_input(label="Tỉnh/TP",placeholder="Đà Nẵng")
 
         # RECORD AUDIO WITH STREAMLIT-AUDIOREC
         wav_audio_data = st_audiorec()
 
-        # audio_bytes = audio_recorder(text="", pause_threshold=1, sample_rate=44100, energy_threshold=0.)
-
-        # if audio_bytes:
-        #     st.audio(audio_bytes, format="audio/wav")
-
         if st.button("Lưu dữ liệu") and wav_audio_data:
-            if username != '' and target_text != '' and age != 0 and country != '' and voice_type != '':
+            if age != 0 and session_id is not None and gender is not None and suggestion is not None and region != "" and st.session_state["word"] is not None:
                 # Convert audio_bytes to a NumPy array
                 audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
 
@@ -174,39 +125,31 @@ def main():
                     OUT_WAV_FILE = f"upload/recorded_audio{time.time()}.wav"  # define absolute path
                     sf.write(OUT_WAV_FILE, audio_array, 44100)
 
+
                     # send audio file
-                    bucket_res = DB.storage.from_("vmd-bucket").upload(file=OUT_WAV_FILE, path=f"{OUT_WAV_FILE}",
+                    _ = DB.storage.from_("cs-bucket").upload(file=OUT_WAV_FILE, path=f"{OUT_WAV_FILE}",
                                                                        file_options={"content-type": "audio/wav"})
-                    print(f"Bucket: {bucket_res}")
+
                     if OUT_WAV_FILE:
                         # get audio_url
-                        wav_url = DB.storage.from_("vmd-bucket").get_public_url(path=f"{OUT_WAV_FILE}")
+                        wav_url = DB.storage.from_("cs-bucket").get_public_url(path=f"{OUT_WAV_FILE}")
                         print(f"Wav url: {wav_url}")
                         st.write("Đang chờ xử lý")
-
-                        if voice_type == "Phổ thông":
-                            response = DB.table("vmd-data").insert(
-                                {"audio_url": wav_url, "canonical_text": target_text.strip(),
-                                 "transcript_text": mispronouned_word.strip(),
-                                 "username": username, "country": country,
-                                 "age": age, "type_voice": True}).execute()
-                            print(f"DB: {response}")
-                        else:
-                            response = DB.table("vmd-data").insert(
-                                {"audio_url": wav_url, "canonical_text": target_text.strip(),
-                                 "transcript_text": mispronouned_word.strip(),
-                                 "username": username, "country": country,
-                                 "age": age, "type_voice": False}).execute()
-                            print(f"DB: {response}")
-                        wav_audio_data = None
+                        response = DB.table("cs-data").insert(
+                            {
+                                "user_id": session_id,
+                                "audio_url": wav_url,
+                                "word": st.session_state["word"],
+                                "transcript_text": suggestion.strip().split("-")[1],
+                                "age": age,
+                                "gender": gender,
+                                "region": region.strip()
+                            }).execute()
                         if response:
                             st.markdown(f"<div style='color: red; font-size: 25px'>Cảm ơn bạn đã giành thời gian giúp "
                                         f"chúng mình</div>",
                                         unsafe_allow_html=True)
 
-                            # delete wav file
-                            if os.path.exists(OUT_WAV_FILE):
-                                os.remove(OUT_WAV_FILE)
                         else:
                             st.error(f"Failed to fetch data")
                 else:
@@ -217,24 +160,17 @@ def main():
     with cl3:
         st.markdown(f"<h2>Hướng dẫn sử dụng</h2>", unsafe_allow_html=True)
 
-        st.markdown(f"<p><strong>Bước 1</strong> Chọn từ bạn muốn ghi âm, chọn từ trong hộp gợi ý hoặc tự chọn.</p>"
-                    f"<p><strong>Bước 2</strong> <strong>Điền đầy đủ thông tin </strong>, đặc biệt là ”<strong>từ "
-                    f"phát âm đúng”</strong> và”<strong>từ bạn muốn phát âm</strong>”. Lưu ý <strong>từ muốn bạn "
-                    f"phát âm</strong> là <strong>từ bạn sẽ phát âm khi ghi âm.</strong> Bạn có thể nghe thử cách "
-                    f"phát âm ở bên cạnh.</p>"
-                    f"<p><strong>Bước 3</strong> Chọn phát âm theo giọng <strong>địa phương</strong> hay giọng <strong>phổ thông (Hà Nội)</strong>."
-                    f" Mặc định phát âm theo giọng phổ thông nhé</p>"
-                    f"<p><strong>Bước 4</strong> Bấm <strong>“Start Recording”</strong> để thu âm, sau khi thu âm "
+        st.markdown(f"<p><strong>Bước 1</strong> Chọn đoạn thoại bạn muốn ghi âm trong hộp gợi ý.</p>"
+                    f"<p><strong>Bước 2</strong> <strong>Điền đầy đủ thông tin </strong> (tuổi, giới tính)."
+                    f"<p><strong>Bước 3</strong> Bấm <strong>“Start Recording”</strong> để thu âm, sau khi thu âm "
                     f"xong bấm ”<strong>Stop</strong>” và nghe lại phần ghi âm ở bên dưới. Nếu phần ghi âm <strong>bị "
                     f"lỗi hoặc thiếu </strong>thì bấm <strong>“Reset”</strong> để ghi âm lại nha.</p>"
-                    f"<p><strong>Bước 5</strong> Bấm <strong>“Lưu dữ liệu”</strong> để gửi ghi âm về cho chúng mình "
+                    f"<p><strong>Bước 4</strong> Bấm <strong>“Lưu dữ liệu”</strong> để gửi ghi âm về cho chúng mình "
                     f"bạn nhé</p></br>"
-                    f"<strong><span style='color: red'>Lưu ý: </span></strong> Nhóm chúng mình cần dữ liệu phát âm "
-                    f"sai, bạn có thể giúp chúng mình phát âm <strong>1 từ với 4 bản ghi âm: 1 bản phát âm đúng và 3 "
-                    f"bản phát âm sai.</strong>"
-                    f"<strong><span style='color: green'> Eg: sinh viên(phát âm đúng) -> sinh diên, xinh viên, sinh viền(phát "
-                    f"âm sai)</span></strong></p> </br>"
-                    f"<strong><span style='color: red'>Khi thanh ghi âm hiện lên/sáng lên bạn hẳn phát âm "
+                    f"<strong><span style='color: red'>Lưu ý: các bạn có thể phát âm các từ tiếng Anh theo hướng Việt hóa </br>"
+                    f"<strong><span style='color: green'> Eg: ability - ờ bi li ti </br>"
+                    f"Hy vọng bạn có thể giúp mình với 5 audio thui </br>"
+                    f"<strong><span style='color: red'>Khi thanh ghi âm hiện lên/sáng lên bạn hẳn ghi âm "
                     f"nhé.</span></strong> </br>",
                     unsafe_allow_html=True)
         st.image("visualize.png", width=300)  # aaaa
@@ -243,5 +179,4 @@ def main():
 
 
 if __name__ == "__main__":
-    st.set_page_config(page_title="Mispronunciation detection", layout="wide")
     main()
