@@ -12,6 +12,8 @@ import requests
 from streamlit_javascript import st_javascript
 import json
 import csv
+import random
+
 
 # init DB
 url: str = "https://eecucubpmvpjkhqletul.supabase.co"
@@ -75,7 +77,8 @@ def main():
         # local_storage_set("userId", session_id)
 
     # sample for select box
-    transcripts = get_transcripts("test_200_words_0.csv")
+    transcripts = get_transcripts("scripts.csv")
+
     _, cl1, _, cl3, _ = st.columns([1, 10, 1, 6, 1])
     with cl1:
         # setup interface
@@ -137,7 +140,7 @@ def main():
                                 "user_id": session_id,
                                 "audio_url": wav_url,
                                 "word": st.session_state["word"],
-                                "transcript_text": suggestion.strip(),
+                                "transcript_text": suggestion.strip().split("-")[1],
                                 "age": age,
                                 "gender": gender,
                                 "region": region.strip()
@@ -165,7 +168,8 @@ def main():
                     f"<p><strong>Bước 4</strong> Bấm <strong>“Lưu dữ liệu”</strong> để gửi ghi âm về cho chúng mình "
                     f"bạn nhé</p></br>"
                     f"<strong><span style='color: red'>Lưu ý: các bạn có thể phát âm các từ tiếng Anh theo hướng Việt hóa </br>"
-                    f"<strong><span style='color: green'> Eg: assistant -> ờ xích tình </br>"
+                    f"<strong><span style='color: green'> Eg: ability - ờ bi li ti </br>"
+                    f"Hy vọng bạn có thể giúp mình với 5 audio thui </br>"
                     f"<strong><span style='color: red'>Khi thanh ghi âm hiện lên/sáng lên bạn hẳn ghi âm "
                     f"nhé.</span></strong> </br>",
                     unsafe_allow_html=True)
