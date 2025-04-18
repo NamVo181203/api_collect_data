@@ -1,4 +1,4 @@
-distutils
+# distutils
 pydantic~=2.5.3
 fastapi~=0.109.0
 python-multipart~=0.0.6
