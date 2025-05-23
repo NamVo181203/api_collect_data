@@ -14,7 +14,6 @@ import json
 import csv
 import random
 
-
 # init DB
 url: str = "https://eecucubpmvpjkhqletul.supabase.co"
 key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlY3VjdWJwbXZwamtocWxldHVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ3MTc5MzUsImV4cCI6MjA2MDI5MzkzNX0.Av-ZEQ2xczudhm2c8p1JioXRXQCf4s0m4X_w5jrkf-8"
@@ -22,21 +21,15 @@ DB: Client = create_client(supabase_url=url, supabase_key=key)
 
 st.set_page_config(layout="wide")
 
+
 def local_storage_set(key, value):
     value = json.dumps(value, ensure_ascii=False)  # Convert to JSON string
     st_javascript(f"localStorage.setItem('{key}', {value});")
 
+
 # Function to get a value from localStorage
 def local_storage_get(key):
     return st_javascript(f"localStorage.getItem('{key}');")
-
-def colorize(value):
-    if value == 1:
-        return "color: green"
-    elif value == 0:
-        return "color: red"
-    else:
-        return ""
 
 
 def _get_phonemes(file_path):
@@ -46,28 +39,33 @@ def _get_phonemes(file_path):
             list_of_phonemes.append(line)
     return list_of_phonemes
 
+
 def get_transcripts(path):
     samples = []
     with open(path, newline='', encoding='utf-8') as csvfile:
         reader = csv.reader(csvfile)
-        next(reader)  # Skip header if there is one
+        next(reader)  # Skip the header if there is one
         for row in reader:
             samples.append(str(row[0] + " - " + row[1]))
     return samples
 
+
 @st.cache_data
 def get_user_id():
     return str(uuid.uuid4())
+
 
 def internal_select(option):
     texts = option.split("-")
     text = texts[1]
     return text
 
+
 def on_select_change():
     selection = st.session_state["transcript"].split("-")
     item = selection[0]
     st.session_state["word"] = item
+
 
 def main():
     session_id = local_storage_get("userId")
@@ -107,13 +105,14 @@ def main():
                 index=0,
             )
         with c3:
-            region = st.text_input(label="Tỉnh/TP",placeholder="Đà Nẵng")
+            region = st.text_input(label="Tỉnh/TP", placeholder="Đà Nẵng")
 
         # RECORD AUDIO WITH STREAMLIT-AUDIOREC
         wav_audio_data = st_audiorec()
 
         if st.button("Lưu dữ liệu") and wav_audio_data:
-            if age != 0 and session_id is not None and gender is not None and suggestion is not None and region != "" and st.session_state["word"] is not None:
+            if age != 0 and session_id is not None and gender is not None and suggestion is not None and region != "" and \
+                    st.session_state["word"] is not None:
                 # Convert audio_bytes to a NumPy array
                 audio_array = np.frombuffer(wav_audio_data, dtype=np.int32)
 
@@ -125,10 +124,9 @@ def main():
                     OUT_WAV_FILE = f"upload/recorded_audio{time.time()}.wav"  # define absolute path
                     sf.write(OUT_WAV_FILE, audio_array, 44100)
 
-
-                    # send audio file
+                    # send an audio file
                     _ = DB.storage.from_("cs-bucket").upload(file=OUT_WAV_FILE, path=f"{OUT_WAV_FILE}",
-                                                                       file_options={"content-type": "audio/wav"})
+                                                             file_options={"content-type": "audio/wav"})
 
                     if OUT_WAV_FILE:
                         # get audio_url
