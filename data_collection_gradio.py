@@ -121,4 +121,4 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
             </div>
             """)
 
-demo.launch()
+demo.launch(share=True)
